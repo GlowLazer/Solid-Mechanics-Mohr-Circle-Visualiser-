@@ -1,0 +1,971 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stress Transformation — Solid Mechanics</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Courier+Prime:ital,wght@0,400;0,700;1,400&family=Oswald:wght@300;400;500;600&family=IBM+Plex+Mono:wght@300;400;500&display=swap');
+
+:root {
+  --paper: #f0ead6;
+  --paper2: #e8e0c8;
+  --ink: #1a1a2e;
+  --ink2: #2d2d4e;
+  --grid: #c8bfa0;
+  --grid2: #d8cdb0;
+  --sigma: #c0392b;
+  --tau: #1a5276;
+  --accent: #8B4513;
+  --green: #1a6e3c;
+  --mono: 'IBM Plex Mono', monospace;
+  --head: 'Oswald', sans-serif;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+
+body {
+  background: #2a2420;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--mono);
+}
+
+.sheet {
+  width: min(1400px, 98vw);
+  height: min(860px, 97vh);
+  background-color: var(--paper);
+  background-image:
+    linear-gradient(rgba(180,168,140,0.4) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(180,168,140,0.4) 1px, transparent 1px),
+    linear-gradient(rgba(160,148,120,0.25) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(160,148,120,0.25) 1px, transparent 1px);
+  background-size: 10px 10px, 10px 10px, 50px 50px, 50px 50px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.6), 4px 4px 0 rgba(0,0,0,0.2);
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  grid-template-rows: auto 1fr auto;
+  position: relative;
+  border: 1px solid #b8ad94;
+}
+
+/* Title block */
+.title-block {
+  grid-column: 1 / -1;
+  border-bottom: 2px solid var(--ink);
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  align-items: stretch;
+}
+
+.title-main {
+  padding: 10px 20px;
+  border-right: 1px solid var(--ink);
+}
+
+.title-course {
+  font-family: var(--mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.title-name {
+  font-family: var(--head);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 2px;
+  color: var(--ink);
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.title-sub {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: #7a6e58;
+  margin-top: 3px;
+  letter-spacing: 1px;
+}
+
+.title-cells { display: flex; }
+
+.title-cell {
+  padding: 6px 16px;
+  border-left: 1px solid var(--ink);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-width: 110px;
+}
+
+.cell-label { font-size: 7px; letter-spacing: 2px; color: #9a8e78; text-transform: uppercase; margin-bottom: 2px; }
+.cell-value { font-family: var(--head); font-size: 13px; font-weight: 500; color: var(--ink2); letter-spacing: 1px; }
+
+.dwg-number {
+  border-left: 2px solid var(--ink);
+  padding: 6px 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background: rgba(139,69,19,0.06);
+}
+
+.dwg-num-label { font-size: 7px; color: #9a8e78; letter-spacing: 2px; }
+.dwg-num-val { font-family: var(--head); font-size: 18px; font-weight: 600; color: var(--accent); letter-spacing: 2px; }
+
+/* Chart panel */
+.chart-panel {
+  position: relative;
+  padding: 14px 14px 6px 18px;
+  border-right: 1px solid var(--ink);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.chart-label {
+  font-size: 8px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+  font-weight: 500;
+}
+
+.chart-wrap { flex: 1; position: relative; }
+
+canvas#mainChart { display: block; width: 100%; height: 100%; cursor: crosshair; }
+
+.mohr-wrap { height: 155px; position: relative; }
+canvas#mohrChart { display: block; width: 100%; height: 100%; }
+
+/* Right panel */
+.right-panel {
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+}
+
+.right-panel::-webkit-scrollbar { width: 3px; }
+.right-panel::-webkit-scrollbar-thumb { background: var(--grid); }
+
+.sec-head {
+  padding: 6px 14px;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--head);
+  font-size: 11px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+
+.param-row {
+  padding: 9px 14px;
+  border-bottom: 1px solid rgba(180,168,140,0.5);
+}
+
+.param-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 6px;
+}
+
+.param-sym { font-family: var(--mono); font-size: 12px; color: var(--ink2); font-weight: 500; }
+.param-sym.sig { color: var(--sigma); }
+.param-sym.sh  { color: var(--tau); }
+.param-num { font-family: var(--mono); font-size: 12px; font-weight: 700; color: var(--ink); }
+
+input[type=range] {
+  -webkit-appearance: none;
+  width: 100%;
+  height: 3px;
+  border-radius: 0;
+  outline: none;
+  cursor: pointer;
+}
+
+input[type=range].sig-range { background: linear-gradient(90deg, var(--sigma) var(--pct, 70%), rgba(192,57,43,0.2) var(--pct, 70%)); }
+input[type=range].tau-range { background: linear-gradient(90deg, var(--tau) var(--pct, 65%), rgba(26,82,118,0.2) var(--pct, 65%)); }
+
+input[type=range]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 11px; height: 11px;
+  border-radius: 50%;
+  border: 2px solid var(--paper);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.3);
+  cursor: pointer;
+  transition: transform 0.1s;
+}
+
+input[type=range].sig-range::-webkit-slider-thumb { background: var(--sigma); }
+input[type=range].tau-range::-webkit-slider-thumb { background: var(--tau); }
+input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.4); }
+
+.range-row { display: flex; gap: 6px; margin-top: 7px; }
+
+.ri-group { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.ri-group label { font-size: 7px; letter-spacing: 2px; color: #9a8e78; text-transform: uppercase; }
+.ri-group input[type=number] {
+  background: rgba(255,255,255,0.4);
+  border: 1px solid var(--grid);
+  border-radius: 0;
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 3px 5px;
+  width: 100%;
+  outline: none;
+  transition: border-color 0.2s;
+}
+.ri-group input[type=number]:focus { border-color: var(--accent); background: rgba(255,255,255,0.7); }
+
+/* Readout */
+.readout-grid { display: grid; grid-template-columns: 1fr 1fr; }
+
+.ro-cell {
+  padding: 7px 14px;
+  border-bottom: 1px solid rgba(180,168,140,0.5);
+  border-right: 1px solid rgba(180,168,140,0.5);
+}
+.ro-cell:nth-child(even) { border-right: none; }
+
+.ro-key { font-size: 7.5px; letter-spacing: 1px; color: #9a8e78; text-transform: uppercase; margin-bottom: 1px; }
+.ro-val { font-family: var(--mono); font-size: 11px; font-weight: 700; color: var(--ink); transition: color 0.3s; }
+
+/* Legend */
+.legend-panel { padding: 9px 14px; border-bottom: 1px solid rgba(180,168,140,0.5); display: flex; flex-direction: column; gap: 5px; }
+.leg-row { display: flex; align-items: center; gap: 8px; }
+.leg-line { width: 26px; height: 2px; flex-shrink: 0; }
+.leg-label { font-family: var(--mono); font-size: 10px; color: var(--ink2); }
+
+/* Bottom strip */
+.bottom-strip {
+  grid-column: 1 / -1;
+  border-top: 2px solid var(--ink);
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  padding: 0 14px;
+  background: rgba(139,69,19,0.04);
+  height: 46px;
+}
+
+.theta-area { display: flex; align-items: center; gap: 12px; }
+.theta-sym { font-family: var(--head); font-size: 22px; font-weight: 500; color: var(--ink2); letter-spacing: 2px; flex-shrink: 0; }
+.theta-sub { font-size: 8px; letter-spacing: 2px; color: #9a8e78; font-family: var(--mono); flex-shrink: 0; }
+
+.theta-slider-wrap { flex: 1; position: relative; }
+
+input#thetaScrub {
+  width: 100%;
+  height: 3px;
+  background: linear-gradient(90deg, var(--green) 50%, rgba(26,110,60,0.2) 50%);
+}
+
+input#thetaScrub::-webkit-slider-thumb {
+  background: var(--green);
+  width: 14px; height: 14px;
+  border: 2px solid var(--paper);
+  border-radius: 0;
+  box-shadow: 0 1px 6px rgba(26,110,60,0.5);
+}
+
+.theta-ticks {
+  position: absolute;
+  left: 0; right: 0; top: 9px;
+  display: flex;
+  justify-content: space-between;
+  pointer-events: none;
+}
+
+.theta-ticks span {
+  font-size: 7px;
+  color: #9a8e78;
+  font-family: var(--mono);
+  text-align: center;
+  white-space: nowrap;
+}
+
+.theta-readout { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--green); min-width: 60px; text-align: right; flex-shrink: 0; }
+
+/* Hover tooltip */
+.htip {
+  position: absolute;
+  background: var(--ink);
+  color: var(--paper);
+  font-family: var(--mono);
+  font-size: 10px;
+  padding: 6px 10px;
+  line-height: 1.8;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.1s;
+  z-index: 20;
+  border-left: 2px solid var(--accent);
+}
+.htip.show { opacity: 1; }
+
+/* Corner marks */
+.corner { position: absolute; width: 16px; height: 16px; pointer-events: none; }
+.corner.tl { top: 0; left: 0; border-top: 2px solid var(--ink); border-left: 2px solid var(--ink); }
+.corner.tr { top: 0; right: 0; border-top: 2px solid var(--ink); border-right: 2px solid var(--ink); }
+.corner.bl { bottom: 0; left: 0; border-bottom: 2px solid var(--ink); border-left: 2px solid var(--ink); }
+.corner.br { bottom: 0; right: 0; border-bottom: 2px solid var(--ink); border-right: 2px solid var(--ink); }
+
+/* Stamp */
+.stamp {
+  position: absolute;
+  bottom: 58px; right: 22px;
+  width: 76px; height: 76px;
+  border: 2.5px solid rgba(139,69,19,0.16);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: rgba(139,69,19,0.16);
+  font-family: var(--head);
+  font-size: 8px;
+  letter-spacing: 1.5px;
+  text-align: center;
+  transform: rotate(-22deg);
+  pointer-events: none;
+  text-transform: uppercase;
+  line-height: 1.4;
+  z-index: 5;
+}
+</style>
+</head>
+<body>
+
+<div class="sheet">
+  <div class="corner tl"></div>
+  <div class="corner tr"></div>
+  <div class="corner bl"></div>
+  <div class="corner br"></div>
+  <div class="stamp">SOLID<br>MECH<br>IIT-J</div>
+
+  <!-- Title block -->
+  <div class="title-block">
+    <div class="title-main">
+      <div class="title-course">ME · Solid Mechanics · Stress Analysis</div>
+      <div class="title-name">Stress Transformation</div>
+      <div class="title-sub">σ<sub>x'</sub>(θ) and τ<sub>x'y'</sub>(θ) under plane stress rotation</div>
+    </div>
+    <div class="title-cells">
+      <div class="title-cell">
+        <div class="cell-label">Scale</div>
+        <div class="cell-value">1:1 MPa</div>
+      </div>
+      <div class="title-cell">
+        <div class="cell-label">Units</div>
+        <div class="cell-value">MPa / deg</div>
+      </div>
+      <div class="title-cell">
+        <div class="cell-label">Projection</div>
+        <div class="cell-value">Plane Stress</div>
+      </div>
+    </div>
+    <div class="dwg-number">
+      <div class="dwg-num-label">DWG NO.</div>
+      <div class="dwg-num-val">SM-01</div>
+    </div>
+  </div>
+
+  <!-- Chart panel -->
+  <div class="chart-panel">
+    <div class="chart-label">FIG 1 — Normal &amp; Shear Stress vs. Angle θ</div>
+    <div class="chart-wrap">
+      <canvas id="mainChart"></canvas>
+      <div class="htip" id="htip"></div>
+    </div>
+    <div class="chart-label">FIG 2 — Mohr's Circle</div>
+    <div class="mohr-wrap">
+      <canvas id="mohrChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Right panel -->
+  <div class="right-panel">
+    <div class="sec-head">Input Parameters</div>
+
+    <div class="param-row">
+      <div class="param-top">
+        <span class="param-sym sig">σ<sub>x</sub></span>
+        <span class="param-num" id="disp_sx">+80 MPa</span>
+      </div>
+      <input type="range" class="sig-range" id="sx" min="-200" max="200" value="80" step="1">
+      <div class="range-row">
+        <div class="ri-group"><label>Min</label><input type="number" id="sx_min" value="-200"></div>
+        <div class="ri-group"><label>Max</label><input type="number" id="sx_max" value="200"></div>
+      </div>
+    </div>
+
+    <div class="param-row">
+      <div class="param-top">
+        <span class="param-sym sig">σ<sub>y</sub></span>
+        <span class="param-num" id="disp_sy">-40 MPa</span>
+      </div>
+      <input type="range" class="sig-range" id="sy" min="-200" max="200" value="-40" step="1">
+      <div class="range-row">
+        <div class="ri-group"><label>Min</label><input type="number" id="sy_min" value="-200"></div>
+        <div class="ri-group"><label>Max</label><input type="number" id="sy_max" value="200"></div>
+      </div>
+    </div>
+
+    <div class="param-row">
+      <div class="param-top">
+        <span class="param-sym sh">τ<sub>xy</sub></span>
+        <span class="param-num" id="disp_txy">+60 MPa</span>
+      </div>
+      <input type="range" class="tau-range" id="txy" min="-200" max="200" value="60" step="1">
+      <div class="range-row">
+        <div class="ri-group"><label>Min</label><input type="number" id="txy_min" value="-200"></div>
+        <div class="ri-group"><label>Max</label><input type="number" id="txy_max" value="200"></div>
+      </div>
+    </div>
+
+    <div class="sec-head" style="margin-top:4px">Legend</div>
+    <div class="legend-panel">
+      <div class="leg-row">
+        <div class="leg-line" style="background:var(--sigma)"></div>
+        <span class="leg-label" style="color:var(--sigma)">σ<sub>x'</sub> — Normal Stress</span>
+      </div>
+      <div class="leg-row">
+        <div class="leg-line" style="background:var(--tau)"></div>
+        <span class="leg-label" style="color:var(--tau)">τ<sub>x'y'</sub> — Shear Stress</span>
+      </div>
+      <div class="leg-row">
+        <div class="leg-line" style="background:var(--green); border-top: 2px dashed var(--green); height:0"></div>
+        <span class="leg-label" style="color:var(--green)">θ — Current Angle</span>
+      </div>
+    </div>
+
+    <div class="sec-head" style="margin-top:4px">Live Readout</div>
+    <div class="readout-grid">
+      <div class="ro-cell">
+        <div class="ro-key">θ</div>
+        <div class="ro-val" id="ro_theta" style="color:var(--green)">—</div>
+      </div>
+      <div class="ro-cell">
+        <div class="ro-key">σ<sub>avg</sub></div>
+        <div class="ro-val" id="ro_savg">—</div>
+      </div>
+      <div class="ro-cell">
+        <div class="ro-key">σ<sub>x'</sub>(θ)</div>
+        <div class="ro-val" id="ro_sigma" style="color:var(--sigma)">—</div>
+      </div>
+      <div class="ro-cell">
+        <div class="ro-key">τ<sub>x'y'</sub>(θ)</div>
+        <div class="ro-val" id="ro_tau" style="color:var(--tau)">—</div>
+      </div>
+      <div class="ro-cell">
+        <div class="ro-key">σ<sub>1</sub> (max)</div>
+        <div class="ro-val" id="ro_s1">—</div>
+      </div>
+      <div class="ro-cell">
+        <div class="ro-key">σ<sub>2</sub> (min)</div>
+        <div class="ro-val" id="ro_s2">—</div>
+      </div>
+      <div class="ro-cell" style="grid-column:1/-1;border-right:none">
+        <div class="ro-key">τ<sub>max</sub> = Mohr's Radius R</div>
+        <div class="ro-val" id="ro_tmax">—</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Bottom strip -->
+  <div class="bottom-strip">
+    <div class="theta-area">
+      <span class="theta-sym">θ</span>
+      <span class="theta-sub">ROTATION</span>
+      <div class="theta-slider-wrap">
+        <input type="range" id="thetaScrub" min="-180" max="180" value="0" step="0.5">
+        <div class="theta-ticks">
+          <span>−180°</span><span>−135°</span><span>−90°</span><span>−45°</span>
+          <span>0°</span><span>45°</span><span>90°</span><span>135°</span><span>180°</span>
+        </div>
+      </div>
+      <div class="theta-readout" id="thetaVal">0.0°</div>
+    </div>
+    <div style="font-family:var(--mono);font-size:7.5px;color:#9a8e78;text-align:right;letter-spacing:1px;line-height:1.7">
+      CLICK CHART → SET θ<br>HOVER → INSPECT VALUES
+    </div>
+  </div>
+</div>
+
+<script>
+const mainCanvas = document.getElementById('mainChart');
+const mohrCanvas = document.getElementById('mohrChart');
+const mCtx = mainCanvas.getContext('2d');
+const hCtx = mohrCanvas.getContext('2d');
+const htip = document.getElementById('htip');
+
+let params = { sx: 80, sy: -40, txy: 60 };
+let animP  = { sx: 80, sy: -40, txy: 60 };
+let theta = 0;
+let animFrame = null;
+let hoverX = null, hoverY = null, hovering = false;
+
+const calcSigma = (sx,sy,txy,t) => {
+  const r = t*Math.PI/180;
+  return (sx+sy)/2 + (sx-sy)/2*Math.cos(2*r) + txy*Math.sin(2*r);
+};
+const calcTau = (sx,sy,txy,t) => {
+  const r = t*Math.PI/180;
+  return -(sx-sy)/2*Math.sin(2*r) + txy*Math.cos(2*r);
+};
+const calcPrincipal = (sx,sy,txy) => {
+  const avg = (sx+sy)/2;
+  const R = Math.sqrt(((sx-sy)/2)**2 + txy**2);
+  return { s1: avg+R, s2: avg-R, R, avg };
+};
+
+function lerp(a,b,t) { return a+(b-a)*t; }
+
+function niceStep(raw) {
+  if (!raw || raw <= 0) return 50;
+  const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+  const f = raw/mag;
+  if (f < 1.5) return mag;
+  if (f < 3) return 2*mag;
+  if (f < 7) return 5*mag;
+  return 10*mag;
+}
+
+function resize() {
+  const dpr = window.devicePixelRatio || 1;
+  for (const c of [mainCanvas, mohrCanvas]) {
+    const r = c.parentElement.getBoundingClientRect();
+    c.width = r.width * dpr;
+    c.height = r.height * dpr;
+    c.style.width = r.width + 'px';
+    c.style.height = r.height + 'px';
+  }
+  drawAll();
+}
+
+function drawMain() {
+  const dpr = window.devicePixelRatio || 1;
+  const cw = mainCanvas.width, ch = mainCanvas.height;
+  mCtx.clearRect(0, 0, cw, ch);
+
+  const sx = animP.sx, sy = animP.sy, txy = animP.txy;
+  const pad = { l: 54*dpr, r: 18*dpr, t: 10*dpr, b: 26*dpr };
+  const ox = pad.l, oy = ch - pad.b;
+  const w = cw - pad.l - pad.r, h = ch - pad.t - pad.b;
+
+  // Y range
+  const vals = [];
+  for (let d = -180; d <= 180; d++) {
+    vals.push(calcSigma(sx,sy,txy,d));
+    vals.push(calcTau(sx,sy,txy,d));
+  }
+  let yMin = Math.min(...vals), yMax = Math.max(...vals);
+  const yPad = (yMax - yMin) * 0.18 || 60;
+  yMin -= yPad; yMax += yPad;
+
+  const mapX = d => ox + (d + 180) / 360 * w;
+  const mapY = v => oy - (v - yMin) / (yMax - yMin) * h;
+
+  // Minor grid lines
+  const step = niceStep((yMax - yMin) / 8);
+  const yStart = Math.ceil(yMin / step) * step;
+
+  mCtx.strokeStyle = 'rgba(180,160,120,0.3)';
+  mCtx.lineWidth = 0.5;
+  for (let v = yStart; v <= yMax; v += step) {
+    const y = mapY(v);
+    mCtx.beginPath(); mCtx.moveTo(ox, y); mCtx.lineTo(ox+w, y); mCtx.stroke();
+  }
+  for (let d = -180; d <= 180; d += 45) {
+    const x = mapX(d);
+    mCtx.beginPath(); mCtx.moveTo(x, oy-h); mCtx.lineTo(x, oy); mCtx.stroke();
+  }
+
+  // Major step every 5 minor
+  mCtx.strokeStyle = 'rgba(150,130,90,0.35)';
+  mCtx.lineWidth = 1;
+  for (let v = yStart; v <= yMax; v += step*5) {
+    const y = mapY(v);
+    if (y < oy-h-1 || y > oy+1) continue;
+    mCtx.beginPath(); mCtx.moveTo(ox, y); mCtx.lineTo(ox+w, y); mCtx.stroke();
+  }
+
+  // Zero line
+  const zy = mapY(0);
+  if (zy >= oy-h && zy <= oy) {
+    mCtx.strokeStyle = 'rgba(26,26,46,0.35)';
+    mCtx.lineWidth = 1.5;
+    mCtx.setLineDash([5*dpr, 5*dpr]);
+    mCtx.beginPath(); mCtx.moveTo(ox, zy); mCtx.lineTo(ox+w, zy); mCtx.stroke();
+    mCtx.setLineDash([]);
+  }
+
+  // Border
+  mCtx.strokeStyle = 'rgba(26,26,46,0.5)';
+  mCtx.lineWidth = 1.5;
+  mCtx.strokeRect(ox, oy-h, w, h);
+
+  // Y axis labels
+  mCtx.fillStyle = '#7a6e58';
+  mCtx.font = `${8.5*dpr}px IBM Plex Mono`;
+  mCtx.textAlign = 'right';
+  for (let v = yStart; v <= yMax; v += step) {
+    const y = mapY(v);
+    if (y < oy-h-2 || y > oy+2) continue;
+    mCtx.fillText(v.toFixed(0), ox - 5*dpr, y + 3*dpr);
+  }
+
+  // X axis labels
+  mCtx.textAlign = 'center';
+  for (let d = -180; d <= 180; d += 45) {
+    mCtx.fillText(d+'°', mapX(d), oy + 15*dpr);
+  }
+
+  // Axis unit labels
+  mCtx.fillStyle = 'rgba(139,69,19,0.6)';
+  mCtx.font = `${7.5*dpr}px IBM Plex Mono`;
+  mCtx.textAlign = 'left';
+  mCtx.fillText('σ, τ [MPa]', ox + 3*dpr, oy - h - 2*dpr);
+  mCtx.textAlign = 'right';
+  mCtx.fillText('θ [°]', ox + w, oy + 22*dpr);
+
+  // Principal dashed markers
+  const ps = calcPrincipal(sx, sy, txy);
+  for (const v of [ps.s1, ps.s2]) {
+    const y = mapY(v);
+    if (y < oy-h-1 || y > oy+1) continue;
+    mCtx.strokeStyle = 'rgba(192,57,43,0.25)';
+    mCtx.lineWidth = 1*dpr;
+    mCtx.setLineDash([4*dpr, 6*dpr]);
+    mCtx.beginPath(); mCtx.moveTo(ox, y); mCtx.lineTo(ox+w, y); mCtx.stroke();
+    mCtx.setLineDash([]);
+    mCtx.fillStyle = 'rgba(192,57,43,0.55)';
+    mCtx.font = `${7.5*dpr}px IBM Plex Mono`;
+    mCtx.textAlign = 'left';
+    const lbl = v === ps.s1 ? 'σ₁' : 'σ₂';
+    mCtx.fillText(`${lbl}=${v.toFixed(0)}`, ox + 3*dpr, y - 3*dpr);
+  }
+
+  // SIGMA curve — slight shadow then stroke
+  mCtx.beginPath();
+  for (let i = 0; i <= 720; i++) {
+    const d = -180 + 360*i/720;
+    const v = calcSigma(sx,sy,txy,d);
+    i === 0 ? mCtx.moveTo(mapX(d), mapY(v)) : mCtx.lineTo(mapX(d), mapY(v));
+  }
+  mCtx.strokeStyle = 'rgba(192,57,43,0.12)';
+  mCtx.lineWidth = 7*dpr;
+  mCtx.stroke();
+  mCtx.strokeStyle = '#c0392b';
+  mCtx.lineWidth = 2*dpr;
+  mCtx.stroke();
+
+  // TAU curve
+  mCtx.beginPath();
+  for (let i = 0; i <= 720; i++) {
+    const d = -180 + 360*i/720;
+    const v = calcTau(sx,sy,txy,d);
+    i === 0 ? mCtx.moveTo(mapX(d), mapY(v)) : mCtx.lineTo(mapX(d), mapY(v));
+  }
+  mCtx.strokeStyle = 'rgba(26,82,118,0.12)';
+  mCtx.lineWidth = 7*dpr;
+  mCtx.stroke();
+  mCtx.strokeStyle = '#1a5276';
+  mCtx.lineWidth = 2*dpr;
+  mCtx.stroke();
+
+  // Current theta dashed line
+  const tx = mapX(theta);
+  mCtx.strokeStyle = '#1a6e3c';
+  mCtx.lineWidth = 1.5*dpr;
+  mCtx.setLineDash([4*dpr, 4*dpr]);
+  mCtx.beginPath(); mCtx.moveTo(tx, oy-h); mCtx.lineTo(tx, oy); mCtx.stroke();
+  mCtx.setLineDash([]);
+
+  // Projection lines to Y axis
+  const sv = calcSigma(sx,sy,txy,theta);
+  const tv = calcTau(sx,sy,txy,theta);
+  const syPx = mapY(sv), tyPx = mapY(tv);
+
+  mCtx.strokeStyle = 'rgba(192,57,43,0.28)';
+  mCtx.lineWidth = 1*dpr;
+  mCtx.beginPath(); mCtx.moveTo(ox, syPx); mCtx.lineTo(tx, syPx); mCtx.stroke();
+  mCtx.strokeStyle = 'rgba(26,82,118,0.28)';
+  mCtx.beginPath(); mCtx.moveTo(ox, tyPx); mCtx.lineTo(tx, tyPx); mCtx.stroke();
+
+  // Points — square, engineering style
+  const squareDot = (x, y, color, s = 6) => {
+    const hs = s * dpr / 2;
+    mCtx.fillStyle = 'rgba(240,234,214,0.95)';
+    mCtx.fillRect(x-hs, y-hs, s*dpr, s*dpr);
+    mCtx.strokeStyle = color;
+    mCtx.lineWidth = 2*dpr;
+    mCtx.strokeRect(x-hs, y-hs, s*dpr, s*dpr);
+    mCtx.fillStyle = color;
+    mCtx.globalAlpha = 0.65;
+    mCtx.fillRect(x-hs+2, y-hs+2, s*dpr-4, s*dpr-4);
+    mCtx.globalAlpha = 1;
+  };
+  squareDot(tx, syPx, '#c0392b');
+  squareDot(tx, tyPx, '#1a5276');
+
+  // Hover crosshair
+  if (hovering && hoverX !== null) {
+    const hd = -180 + (hoverX - ox) / w * 360;
+    if (hd >= -180 && hd <= 180) {
+      mCtx.strokeStyle = 'rgba(26,26,46,0.12)';
+      mCtx.lineWidth = 1*dpr;
+      mCtx.setLineDash([2*dpr, 3*dpr]);
+      mCtx.beginPath(); mCtx.moveTo(hoverX, oy-h); mCtx.lineTo(hoverX, oy); mCtx.stroke();
+      mCtx.setLineDash([]);
+
+      const hsv = calcSigma(sx,sy,txy,hd);
+      const htv = calcTau(sx,sy,txy,hd);
+      const tipX = hoverX/dpr + 10;
+      const tipY = hoverY/dpr - 10;
+      htip.style.left = Math.min(tipX, mainCanvas.clientWidth - 165) + 'px';
+      htip.style.top  = Math.max(tipY - 58, 2) + 'px';
+      htip.innerHTML =
+        `θ = ${hd.toFixed(1)}°<br>` +
+        `<span style="color:#e8a090">σ = ${hsv.toFixed(2)} MPa</span><br>` +
+        `<span style="color:#7aabcc">τ = ${htv.toFixed(2)} MPa</span>`;
+    }
+  }
+
+  // Readout updates
+  const ps2 = calcPrincipal(sx, sy, txy);
+  document.getElementById('ro_theta').textContent = theta.toFixed(1)+'°';
+  document.getElementById('ro_sigma').textContent = sv.toFixed(2)+' MPa';
+  document.getElementById('ro_tau').textContent   = tv.toFixed(2)+' MPa';
+  document.getElementById('ro_s1').textContent    = ps2.s1.toFixed(2)+' MPa';
+  document.getElementById('ro_s2').textContent    = ps2.s2.toFixed(2)+' MPa';
+  document.getElementById('ro_tmax').textContent  = ps2.R.toFixed(2)+' MPa';
+  document.getElementById('ro_savg').textContent  = ps2.avg.toFixed(2)+' MPa';
+}
+
+function drawMohr() {
+  const dpr = window.devicePixelRatio || 1;
+  const cw = mohrCanvas.width, ch = mohrCanvas.height;
+  hCtx.clearRect(0, 0, cw, ch);
+
+  const sx = animP.sx, sy = animP.sy, txy = animP.txy;
+  const ps = calcPrincipal(sx, sy, txy);
+  const { avg: C, R } = ps;
+
+  const displayR = Math.max(R, 1);
+  const displayC = C;
+  const totalSpan = Math.abs(displayC) + displayR * 1.5;
+  const scl = Math.min((cw * 0.45) / (displayR || 1), (ch * 0.42) / (displayR || 1));
+  const ox = cw / 2 - displayC * scl * 0.1;
+  const oy = ch / 2;
+
+  const mX = v => ox + v * scl;
+  const mY = v => oy - v * scl;
+
+  // Grid
+  const step = niceStep(R * 0.5 || 50);
+  hCtx.strokeStyle = 'rgba(180,160,120,0.3)';
+  hCtx.lineWidth = 0.5;
+  for (let i = -5; i <= 5; i++) {
+    const v = i * step;
+    const x = mX(C + v);
+    if (x > 0 && x < cw) {
+      hCtx.beginPath(); hCtx.moveTo(x, 0); hCtx.lineTo(x, ch); hCtx.stroke();
+    }
+    const y = mY(v);
+    if (y > 0 && y < ch) {
+      hCtx.beginPath(); hCtx.moveTo(0, y); hCtx.lineTo(cw, y); hCtx.stroke();
+    }
+  }
+
+  // Axes
+  hCtx.strokeStyle = 'rgba(26,26,46,0.3)';
+  hCtx.lineWidth = 1;
+  hCtx.beginPath(); hCtx.moveTo(0, oy); hCtx.lineTo(cw, oy); hCtx.stroke();
+  hCtx.beginPath(); hCtx.moveTo(mX(0), 0); hCtx.lineTo(mX(0), ch); hCtx.stroke();
+
+  // Axis labels
+  hCtx.fillStyle = 'rgba(139,69,19,0.55)';
+  hCtx.font = `${7.5*dpr}px IBM Plex Mono`;
+  hCtx.textAlign = 'right';
+  hCtx.fillText('σ →', cw - 2, oy - 4*dpr);
+  hCtx.textAlign = 'left';
+  hCtx.fillText('τ ↑', mX(0) + 3*dpr, 10*dpr);
+
+  // Circle fill + stroke
+  hCtx.beginPath();
+  hCtx.arc(mX(C), mY(0), R * scl, 0, Math.PI * 2);
+  hCtx.fillStyle = 'rgba(26,82,118,0.05)';
+  hCtx.fill();
+  hCtx.strokeStyle = 'rgba(26,82,118,0.6)';
+  hCtx.lineWidth = 1.5*dpr;
+  hCtx.stroke();
+
+  // Center crosshair
+  hCtx.strokeStyle = 'rgba(26,82,118,0.3)';
+  hCtx.lineWidth = 0.8*dpr;
+  const cx2 = mX(C);
+  hCtx.beginPath(); hCtx.moveTo(cx2-6*dpr, oy); hCtx.lineTo(cx2+6*dpr, oy); hCtx.stroke();
+  hCtx.beginPath(); hCtx.moveTo(cx2, oy-6*dpr); hCtx.lineTo(cx2, oy+6*dpr); hCtx.stroke();
+
+  // Current point
+  const sv = calcSigma(sx,sy,txy,theta);
+  const tv = calcTau(sx,sy,txy,theta);
+  const px = mX(sv), py = mY(tv);
+
+  // Line from center to point
+  hCtx.strokeStyle = 'rgba(26,110,60,0.55)';
+  hCtx.lineWidth = 1*dpr;
+  hCtx.setLineDash([3*dpr,3*dpr]);
+  hCtx.beginPath(); hCtx.moveTo(mX(C), oy); hCtx.lineTo(px, py); hCtx.stroke();
+  hCtx.setLineDash([]);
+
+  // Point
+  hCtx.fillStyle = '#1a6e3c';
+  hCtx.beginPath(); hCtx.arc(px, py, 4.5*dpr, 0, Math.PI*2); hCtx.fill();
+  hCtx.fillStyle = 'rgba(240,234,214,0.9)';
+  hCtx.beginPath(); hCtx.arc(px, py, 2*dpr, 0, Math.PI*2); hCtx.fill();
+
+  // Principal points
+  for (const [pv, lbl] of [[ps.s1,'σ₁'],[ps.s2,'σ₂']]) {
+    const ppx = mX(pv);
+    hCtx.fillStyle = '#c0392b';
+    hCtx.beginPath(); hCtx.arc(ppx, oy, 4*dpr, 0, Math.PI*2); hCtx.fill();
+    hCtx.fillStyle = 'rgba(192,57,43,0.7)';
+    hCtx.font = `${7.5*dpr}px IBM Plex Mono`;
+    hCtx.textAlign = 'center';
+    hCtx.fillText(`${lbl}=${pv.toFixed(0)}`, ppx, oy - 8*dpr);
+  }
+
+  // Coordinate label for current point
+  hCtx.fillStyle = '#1a6e3c';
+  hCtx.font = `${7.5*dpr}px IBM Plex Mono`;
+  hCtx.textAlign = 'left';
+  const lx = px + 7*dpr, ly = py - 4*dpr;
+  hCtx.fillText(`(${sv.toFixed(0)}, ${tv.toFixed(0)})`, lx, ly);
+
+  // R label
+  if (R > 5) {
+    hCtx.fillStyle = 'rgba(26,82,118,0.5)';
+    hCtx.font = `${7.5*dpr}px IBM Plex Mono`;
+    hCtx.textAlign = 'center';
+    hCtx.fillText(`R = ${R.toFixed(1)}`, mX(C), mY(0) - R*scl - 7*dpr);
+  }
+}
+
+function drawAll() { drawMain(); drawMohr(); }
+
+function animate() {
+  let changed = false;
+  for (const k of ['sx','sy','txy']) {
+    if (Math.abs(params[k] - animP[k]) > 0.05) {
+      animP[k] = lerp(animP[k], params[k], 0.13);
+      changed = true;
+    } else {
+      animP[k] = params[k];
+    }
+  }
+  drawAll();
+  if (changed) animFrame = requestAnimationFrame(animate);
+  else animFrame = null;
+}
+
+function trigger() {
+  if (!animFrame) animFrame = requestAnimationFrame(animate);
+}
+
+function updateFill(el) {
+  const mn = parseFloat(el.min), mx = parseFloat(el.max), v = parseFloat(el.value);
+  el.style.setProperty('--pct', ((v-mn)/(mx-mn)*100)+'%');
+}
+
+function setupParam(id, key, dispId) {
+  const sl = document.getElementById(id);
+  const dp = document.getElementById(dispId);
+  const minIn = document.getElementById(id+'_min');
+  const maxIn = document.getElementById(id+'_max');
+
+  const refresh = () => {
+    const v = parseFloat(sl.value);
+    params[key] = v;
+    dp.textContent = (v >= 0 ? '+' : '') + v + ' MPa';
+    updateFill(sl);
+    trigger();
+  };
+
+  sl.addEventListener('input', refresh);
+
+  const updateRange = () => {
+    const mn = parseFloat(minIn.value), mx2 = parseFloat(maxIn.value);
+    if (mn >= mx2) return;
+    sl.min = mn; sl.max = mx2;
+    updateFill(sl);
+  };
+  minIn.addEventListener('change', updateRange);
+  maxIn.addEventListener('change', updateRange);
+  refresh();
+}
+
+setupParam('sx',  'sx',  'disp_sx');
+setupParam('sy',  'sy',  'disp_sy');
+setupParam('txy', 'txy', 'disp_txy');
+
+// Theta scrubber
+const tScrub = document.getElementById('thetaScrub');
+const tVal   = document.getElementById('thetaVal');
+
+tScrub.addEventListener('input', () => {
+  theta = parseFloat(tScrub.value);
+  tVal.textContent = theta.toFixed(1) + '°';
+  const pct = ((theta + 180) / 360) * 100;
+  tScrub.style.background = `linear-gradient(90deg, var(--green) ${pct}%, rgba(26,110,60,0.2) ${pct}%)`;
+  drawAll();
+});
+
+// Click chart to set theta
+mainCanvas.addEventListener('click', e => {
+  const rect = mainCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio;
+  const pad = { l: 54*dpr, r: 18*dpr };
+  const clickX = (e.clientX - rect.left) * dpr;
+  const w = mainCanvas.width - pad.l - pad.r;
+  const d = -180 + (clickX - pad.l) / w * 360;
+  if (d < -185 || d > 185) return;
+  theta = Math.round(Math.max(-180, Math.min(180, d)) * 2) / 2;
+  tScrub.value = theta;
+  tVal.textContent = theta.toFixed(1) + '°';
+  const pct = ((theta + 180) / 360) * 100;
+  tScrub.style.background = `linear-gradient(90deg, var(--green) ${pct}%, rgba(26,110,60,0.2) ${pct}%)`;
+  drawAll();
+});
+
+mainCanvas.addEventListener('mousemove', e => {
+  const rect = mainCanvas.getBoundingClientRect();
+  const dpr = window.devicePixelRatio;
+  hoverX = (e.clientX - rect.left) * dpr;
+  hoverY = (e.clientY - rect.top) * dpr;
+  hovering = true;
+  htip.classList.add('show');
+  drawAll();
+});
+
+mainCanvas.addEventListener('mouseleave', () => {
+  hovering = false;
+  htip.classList.remove('show');
+  drawAll();
+});
+
+window.addEventListener('resize', resize);
+resize();
+tVal.textContent = '0.0°';
+</script>
+</body>
+</html>
